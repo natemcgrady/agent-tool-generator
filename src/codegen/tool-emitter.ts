@@ -1,8 +1,12 @@
-import type { NormalizedOperation } from "../normalize/types.js";
+import type { NormalizedOperation, NormalizedParameter, NormalizedSchema } from "../normalize/types.js";
 import type { GeneratorConfig } from "../config.js";
 import type { AuthInfo } from "./auth.js";
 import { schemaToZod } from "./zod-emitter.js";
 import { deriveToolName, deduplicateName } from "../util/naming.js";
+
+interface BoundParameter extends NormalizedParameter {
+  inputName: string;
+}
 
 /**
  * Generate code for a single tool factory function.
@@ -29,10 +33,10 @@ export function emitTool(
   const bindInputName = (rawName: string): string =>
     deduplicateInputName(toInputPropertyName(rawName), usedInputNames);
 
-  const pathParams = op.parameters
+  const pathParams: BoundParameter[] = op.parameters
     .filter((p) => p.in === "path")
     .map((p) => ({ ...p, inputName: bindInputName(p.name) }));
-  const queryParams = op.parameters
+  const queryParams: BoundParameter[] = op.parameters
     .filter((p) => p.in === "query")
     .map((p) => ({ ...p, inputName: bindInputName(p.name) }));
   const bodyInputName = op.requestBody ? bindInputName("body") : undefined;
@@ -151,10 +155,15 @@ export function emitTool(
     `    execute: async (params) => {\n${execLines.join("\n")}\n    }`,
   ];
 
-  return `export const ${toolName} = (options: ${optionsTypeName}) =>
+  const exportCode = `export const ${toolName} = (options: ${optionsTypeName}) =>
   tool({
 ${toolProps.join(",\n")},
   });`;
+
+  if (!config.emitJsdoc) return exportCode;
+
+  const jsDoc = emitToolJsDoc(op, pathParams, queryParams, bodyInputName);
+  return `${jsDoc}\n${exportCode}`;
 }
 
 function toInputPropertyName(name: string): string {
@@ -197,4 +206,98 @@ function toWireStringExpression(valueExpr: string, schemaType?: string): string 
     return `String(${valueExpr})`;
   }
   return valueExpr;
+}
+
+function emitToolJsDoc(
+  op: NormalizedOperation,
+  pathParams: BoundParameter[],
+  queryParams: BoundParameter[],
+  bodyInputName?: string,
+): string {
+  const lines: string[] = [];
+  const operationSummary =
+    [op.summary, op.description].filter(Boolean).join(" - ") ||
+    `${op.method.toUpperCase()} ${op.path}`;
+
+  lines.push("/**");
+  lines.push(` * ${escapeJsDoc(operationSummary)}`);
+  lines.push(" *");
+  lines.push(` * Operation: ${op.method.toUpperCase()} ${escapeJsDoc(op.path)}`);
+  lines.push(" *");
+  lines.push(" * Required input:");
+
+  const requiredInput = describeRequiredInput(op, pathParams, queryParams, bodyInputName);
+  if (requiredInput.length === 0) {
+    lines.push(" * - None");
+  } else {
+    for (const item of requiredInput) {
+      lines.push(` * - ${escapeJsDoc(item)}`);
+    }
+  }
+
+  lines.push(" *");
+  lines.push(" * Output:");
+  for (const item of describeOutput(op.responseSchema)) {
+    lines.push(` * - ${escapeJsDoc(item)}`);
+  }
+  lines.push(" */");
+
+  return lines.join("\n");
+}
+
+function describeRequiredInput(
+  op: NormalizedOperation,
+  pathParams: BoundParameter[],
+  queryParams: BoundParameter[],
+  bodyInputName?: string,
+): string[] {
+  const lines: string[] = [];
+
+  for (const param of pathParams) {
+    lines.push(`\`${param.inputName}\` (path param "${param.name}")`);
+  }
+
+  for (const param of queryParams) {
+    if (!param.required) continue;
+    lines.push(`\`${param.inputName}\` (query param "${param.name}")`);
+  }
+
+  if (op.requestBody?.required && bodyInputName) {
+    const bodyRequired = op.requestBody.schema.required ?? [];
+    if (bodyRequired.length > 0) {
+      lines.push(
+        `\`${bodyInputName}\` (request body) with required properties: ${bodyRequired.map((value) => `\`${value}\``).join(", ")}`,
+      );
+    } else {
+      lines.push(`\`${bodyInputName}\` (request body)`);
+    }
+  }
+
+  return lines;
+}
+
+function describeOutput(responseSchema?: NormalizedSchema): string[] {
+  const lines: string[] = [];
+
+  if (!responseSchema) {
+    lines.push("Success: parsed JSON response body.");
+  } else if (responseSchema.type === "array") {
+    lines.push("Success: parsed JSON array response body.");
+  } else if (responseSchema.type === "object" || responseSchema.properties) {
+    lines.push("Success: parsed JSON object response body.");
+  } else {
+    lines.push("Success: parsed JSON response body.");
+  }
+
+  const requiredFields = responseSchema?.required ?? [];
+  if (requiredFields.length > 0) {
+    lines.push(`Required response properties: ${requiredFields.map((field) => `\`${field}\``).join(", ")}`);
+  }
+
+  lines.push("Failure: `{ error: true, status: number, message: string }`.");
+  return lines;
+}
+
+function escapeJsDoc(value: string): string {
+  return value.replace(/\*\//g, "*\\/");
 }

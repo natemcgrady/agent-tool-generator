@@ -36,6 +36,7 @@ pnpm exec agent-tool-generator \
 | `--output <dir>` | `-o` | Output directory for generated files | **required** |
 | `--name <name>` | `-n` | API name used for type names (e.g. `SentinelOne`) | **required** |
 | `--strip-prefix <prefix>` | | Path prefix to strip when deriving tool names | |
+| `--emit-jsdoc` | | Emit JSDoc comments in generated tool files with required input/output details | `false` |
 | `--auth-type <type>` | | Auth type: `apiKey`, `bearer`, `basic` | `apiKey` |
 | `--auth-header <name>` | | Auth header name | `Authorization` |
 | `--auth-prefix <prefix>` | | Auth value prefix | `Bearer ` |
@@ -78,6 +79,7 @@ Each generated tool is compatible with the AI SDK `tool()` interface and include
 - A Zod input schema derived from the spec's path, query, and body parameters
 - A description pulled from the operation's summary/description
 - An `execute` function that makes the HTTP request with proper auth
+- Optional JSDoc blocks (`--emit-jsdoc`) that document required input and output contracts
 
 ## Supported Specs
 

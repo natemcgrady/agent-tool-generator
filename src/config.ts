@@ -3,6 +3,7 @@ export interface GeneratorConfig {
   output: string;
   name: string;
   stripPrefix?: string;
+  emitJsdoc?: boolean;
   authType?: "apiKey" | "bearer" | "basic";
   authHeader?: string;
   authPrefix?: string;
@@ -10,6 +11,7 @@ export interface GeneratorConfig {
 }
 
 export const defaultConfig: Partial<GeneratorConfig> = {
+  emitJsdoc: false,
   authType: "apiKey",
   authHeader: "Authorization",
   authPrefix: "Bearer ",

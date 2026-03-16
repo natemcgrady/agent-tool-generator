@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.6] - 2026-03-16
+
+### Added
+- Added optional JSDoc emission for generated tool files (`--emit-jsdoc` / `emitJsdoc`) including required input and output details per operation.
+
 ## [0.0.5] - 2026-03-16
 
 ### Changed

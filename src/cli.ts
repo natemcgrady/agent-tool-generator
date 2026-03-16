@@ -10,6 +10,7 @@ const { values } = parseArgs({
     output: { type: "string", short: "o" },
     name: { type: "string", short: "n" },
     "strip-prefix": { type: "string" },
+    "emit-jsdoc": { type: "boolean" },
     "auth-type": { type: "string" },
     "auth-header": { type: "string" },
     "auth-prefix": { type: "string" },
@@ -27,6 +28,7 @@ Options:
   -o, --output <dir>        Output directory for generated files
   -n, --name <name>         API name (used for type names, e.g. "SentinelOne")
   --strip-prefix <prefix>   Path prefix to strip when deriving tool names
+  --emit-jsdoc              Emit JSDoc comments with required input/output details
   --auth-type <type>        Auth type: apiKey, bearer, basic (default: apiKey)
   --auth-header <name>      Auth header name (default: Authorization)
   --auth-prefix <prefix>    Auth value prefix (default: "Bearer ")
@@ -41,6 +43,7 @@ const config: GeneratorConfig = {
   output: values.output,
   name: values.name,
   stripPrefix: values["strip-prefix"],
+  emitJsdoc: values["emit-jsdoc"],
   authType: values["auth-type"] as GeneratorConfig["authType"],
   authHeader: values["auth-header"],
   authPrefix: values["auth-prefix"],
