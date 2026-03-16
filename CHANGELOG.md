@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+## [0.0.3] - 2026-03-16
+
+### Changed
+- Code generation now normalizes operation input parameter names to safe camelCase identifiers and emits dot-notation access (for example, `params.pamName` instead of `params["pam-name"]`).
+- README corrected to match actual generator output and usage:
+  - removed barrel export claims (`index.ts` files are not generated)
+  - updated examples to use direct per-tool imports
+  - updated auth option examples to use `apiToken`
+
 ## [0.0.2] - 2026-03-16
 
 ### Added

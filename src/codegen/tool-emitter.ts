@@ -25,8 +25,17 @@ export function emitTool(
     .replace(/`/g, "\\`")
     .replace(/\$/g, "\\$");
 
-  const pathParams = op.parameters.filter((p) => p.in === "path");
-  const queryParams = op.parameters.filter((p) => p.in === "query");
+  const usedInputNames = new Set<string>();
+  const bindInputName = (rawName: string): string =>
+    deduplicateInputName(toInputPropertyName(rawName), usedInputNames);
+
+  const pathParams = op.parameters
+    .filter((p) => p.in === "path")
+    .map((p) => ({ ...p, inputName: bindInputName(p.name) }));
+  const queryParams = op.parameters
+    .filter((p) => p.in === "query")
+    .map((p) => ({ ...p, inputName: bindInputName(p.name) }));
+  const bodyInputName = op.requestBody ? bindInputName("body") : undefined;
 
   // Build inputSchema fields
   const schemaFields: string[] = [];
@@ -37,7 +46,7 @@ export function emitTool(
     if (p.description && !zodCode.includes(".describe(")) {
       zodCode += `.describe(${JSON.stringify(p.description)})`;
     }
-    schemaFields.push(`      ${JSON.stringify(p.name)}: ${zodCode}`);
+    schemaFields.push(`      ${p.inputName}: ${zodCode}`);
   }
 
   for (const p of queryParams) {
@@ -46,13 +55,13 @@ export function emitTool(
       zodCode += `.describe(${JSON.stringify(p.description)})`;
     }
     if (!p.required) zodCode += ".optional()";
-    schemaFields.push(`      ${JSON.stringify(p.name)}: ${zodCode}`);
+    schemaFields.push(`      ${p.inputName}: ${zodCode}`);
   }
 
-  if (op.requestBody) {
+  if (op.requestBody && bodyInputName) {
     let bodyZod = schemaToZod(op.requestBody.schema, 4);
     if (!op.requestBody.required) bodyZod += ".optional()";
-    schemaFields.push(`      "body": ${bodyZod}`);
+    schemaFields.push(`      ${bodyInputName}: ${bodyZod}`);
   }
 
   const schemaCode =
@@ -69,7 +78,7 @@ export function emitTool(
     for (const p of pathParams) {
       urlTemplate = urlTemplate.replace(
         `{${p.name}}`,
-        `\${encodeURIComponent(String(params[${JSON.stringify(p.name)}]))}`,
+        `\${encodeURIComponent(String(params.${p.inputName}))}`,
       );
     }
     execLines.push(`      let url = \`\${options.baseUrl}${urlTemplate}\`;`);
@@ -81,15 +90,9 @@ export function emitTool(
   if (queryParams.length > 0) {
     execLines.push(`      const query = new URLSearchParams();`);
     for (const p of queryParams) {
-      if (p.schema.type === "array") {
-        execLines.push(
-          `      if (params[${JSON.stringify(p.name)}] !== undefined) query.set(${JSON.stringify(p.name)}, String(params[${JSON.stringify(p.name)}]));`,
-        );
-      } else {
-        execLines.push(
-          `      if (params[${JSON.stringify(p.name)}] !== undefined) query.set(${JSON.stringify(p.name)}, String(params[${JSON.stringify(p.name)}]));`,
-        );
-      }
+      execLines.push(
+        `      if (params.${p.inputName} !== undefined) query.set(${JSON.stringify(p.name)}, String(params.${p.inputName}));`,
+      );
     }
     execLines.push(`      const qs = query.toString();`);
     execLines.push(`      if (qs) url += "?" + qs;`);
@@ -114,9 +117,9 @@ export function emitTool(
   }
   execLines.push(`        },`);
 
-  if (op.requestBody) {
+  if (op.requestBody && bodyInputName) {
     execLines.push(
-      `        body: params.body ? JSON.stringify(params.body) : undefined,`,
+      `        body: params.${bodyInputName} ? JSON.stringify(params.${bodyInputName}) : undefined,`,
     );
   }
 
@@ -150,4 +153,33 @@ export function emitTool(
   tool({
 ${toolProps.join(",\n")},
   });`;
+}
+
+function toInputPropertyName(name: string): string {
+  const segments = name
+    .split(/[^a-zA-Z0-9]+/)
+    .map((segment) => segment.trim())
+    .filter(Boolean);
+
+  const camel = segments
+    .map((segment, index) => {
+      const normalized = segment.toLowerCase();
+      if (index === 0) return normalized;
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    })
+    .join("");
+
+  const fallback = camel || "param";
+  return /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(fallback) ? fallback : `p${fallback}`;
+}
+
+function deduplicateInputName(base: string, seen: Set<string>): string {
+  let candidate = base;
+  let index = 2;
+  while (seen.has(candidate)) {
+    candidate = `${base}${index}`;
+    index++;
+  }
+  seen.add(candidate);
+  return candidate;
 }
