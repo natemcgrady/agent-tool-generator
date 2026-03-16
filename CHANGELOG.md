@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.4] - 2026-03-16
+
+### Changed
+- CLI `--input` now accepts either a local JSON file path or an `http(s)` URL to a remote OpenAPI/Swagger JSON spec.
+
 ## [0.0.3] - 2026-03-16
 
 ### Changed

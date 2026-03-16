@@ -76,9 +76,10 @@ export function emitTool(
   let urlTemplate = op.path;
   if (pathParams.length > 0) {
     for (const p of pathParams) {
+      const encodedValueExpr = toWireStringExpression(`params.${p.inputName}`, p.schema.type);
       urlTemplate = urlTemplate.replace(
         `{${p.name}}`,
-        `\${encodeURIComponent(String(params.${p.inputName}))}`,
+        `\${encodeURIComponent(${encodedValueExpr})}`,
       );
     }
     execLines.push(`      let url = \`\${options.baseUrl}${urlTemplate}\`;`);
@@ -90,8 +91,9 @@ export function emitTool(
   if (queryParams.length > 0) {
     execLines.push(`      const query = new URLSearchParams();`);
     for (const p of queryParams) {
+      const queryValueExpr = toWireStringExpression(`params.${p.inputName}`, p.schema.type);
       execLines.push(
-        `      if (params.${p.inputName} !== undefined) query.set(${JSON.stringify(p.name)}, String(params.${p.inputName}));`,
+        `      if (params.${p.inputName} !== undefined) query.set(${JSON.stringify(p.name)}, ${queryValueExpr});`,
       );
     }
     execLines.push(`      const qs = query.toString();`);
@@ -182,4 +184,17 @@ function deduplicateInputName(base: string, seen: Set<string>): string {
   }
   seen.add(candidate);
   return candidate;
+}
+
+function toWireStringExpression(valueExpr: string, schemaType?: string): string {
+  if (
+    schemaType === "integer" ||
+    schemaType === "number" ||
+    schemaType === "boolean" ||
+    schemaType === "array" ||
+    schemaType === "object"
+  ) {
+    return `String(${valueExpr})`;
+  }
+  return valueExpr;
 }

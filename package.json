@@ -1,6 +1,6 @@
 {
   "name": "agent-tool-generator",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Generate AI SDK tools from OpenAPI/Swagger specs",
   "type": "module",
   "main": "./dist/index.js",

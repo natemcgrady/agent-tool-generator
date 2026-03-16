@@ -23,7 +23,7 @@ if (values.help || !values.input || !values.output || !values.name) {
   console.log(`Usage: agent-tool-generator [options]
 
 Options:
-  -i, --input <path>        Path to OpenAPI/Swagger spec (JSON)
+  -i, --input <source>      OpenAPI/Swagger spec source: local path or http(s) URL (JSON)
   -o, --output <dir>        Output directory for generated files
   -n, --name <name>         API name (used for type names, e.g. "SentinelOne")
   --strip-prefix <prefix>   Path prefix to strip when deriving tool names
@@ -47,4 +47,8 @@ const config: GeneratorConfig = {
   authIn: values["auth-in"] as GeneratorConfig["authIn"],
 };
 
-generateTools(config);
+void generateTools(config).catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(message);
+  process.exit(1);
+});
