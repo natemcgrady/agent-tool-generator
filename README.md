@@ -32,7 +32,7 @@ pnpm exec agent-tool-generator \
 
 | Flag | Short | Description | Default |
 | --- | --- | --- | --- |
-| `--input <source>` | `-i` | OpenAPI/Swagger spec source: local path or http(s) URL (JSON) | **required** |
+| `--input <source>` | `-i` | OpenAPI/Swagger spec source: local path or http(s) URL (JSON/YAML) | **required** |
 | `--output <dir>` | `-o` | Output directory for generated files | **required** |
 | `--name <name>` | `-n` | API name used for type names (e.g. `SentinelOne`) | **required** |
 | `--strip-prefix <prefix>` | | Path prefix to strip when deriving tool names | |
@@ -84,9 +84,7 @@ Each generated tool is compatible with the AI SDK `tool()` interface and include
 - **Swagger 2.0** — auto-detected via `"swagger": "2.x"` or the presence of `definitions`
 - **OpenAPI 3.x** — auto-detected via `"openapi": "3.x"`
 
-Specs must be JSON. Convert YAML specs to JSON before running the generator.
-
-Remote JSON specs are supported via `http://` and `https://` URLs.
+Specs can be JSON or YAML, from a local file or a remote `http://` / `https://` URL.
 
 ## Peer Dependencies
 

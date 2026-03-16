@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.0.5] - 2026-03-16
+
+### Changed
+- Spec parsing now supports both JSON and YAML inputs for local files and `http(s)` URLs.
+
 ## [0.0.4] - 2026-03-16
 
 ### Changed

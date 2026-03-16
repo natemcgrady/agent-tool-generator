@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import { parse as parseYaml } from "yaml";
 import type { GeneratorConfig } from "./config.js";
 import { normalize } from "./normalize/index.js";
 import { generate } from "./codegen/index.js";
@@ -10,7 +11,7 @@ export type { GeneratorConfig } from "./config.js";
  */
 export async function generateTools(config: GeneratorConfig): Promise<void> {
   const raw = await readOpenApiSource(config.input);
-  const spec = JSON.parse(raw) as Record<string, unknown>;
+  const spec = parseOpenApiSpec(raw, config.input);
   const normalized = normalize(spec);
 
   console.log(
@@ -42,4 +43,27 @@ async function readOpenApiSource(input: string): Promise<string> {
   }
 
   return response.text();
+}
+
+function parseOpenApiSpec(raw: string, input: string): Record<string, unknown> {
+  try {
+    return JSON.parse(raw) as Record<string, unknown>;
+  } catch (jsonError) {
+    try {
+      const parsed = parseYaml(raw) as unknown;
+      if (typeof parsed !== "object" || parsed === null) {
+        throw new Error("Parsed YAML spec is not an object");
+      }
+
+      return parsed as Record<string, unknown>;
+    } catch (yamlError) {
+      const jsonMessage =
+        jsonError instanceof Error ? jsonError.message : String(jsonError);
+      const yamlMessage =
+        yamlError instanceof Error ? yamlError.message : String(yamlError);
+      throw new Error(
+        `Failed to parse OpenAPI spec from "${input}". Expected valid JSON or YAML.\nJSON parse error: ${jsonMessage}\nYAML parse error: ${yamlMessage}`,
+      );
+    }
+  }
 }
