@@ -35,6 +35,7 @@ pnpm exec agent-tool-generator \
 | `--input <source>` | `-i` | OpenAPI/Swagger spec source: local path or http(s) URL (JSON/YAML) | **required** |
 | `--output <dir>` | `-o` | Output directory for generated files | **required** |
 | `--name <name>` | `-n` | API name used for type names (e.g. `SentinelOne`) | **required** |
+| `--endpoint <name>` | `-e` | Only generate tools for endpoint paths containing this value (e.g. `users`) | |
 | `--strip-prefix <prefix>` | | Path prefix to strip when deriving tool names | |
 | `--emit-jsdoc` | | Emit JSDoc comments in generated tool files with required input/output details | `false` |
 | `--auth-type <type>` | | Auth type: `apiKey`, `bearer`, `basic` | `apiKey` |
@@ -42,6 +43,16 @@ pnpm exec agent-tool-generator \
 | `--auth-prefix <prefix>` | | Auth value prefix | `Bearer ` |
 | `--auth-in <location>` | | Auth location: `header`, `query` | `header` |
 | `--help` | `-h` | Show help | |
+
+Filter by endpoint path:
+
+```bash
+pnpm dlx agent-tool-generator \
+  -i ./swagger.json \
+  -o ./src/tools/my-api \
+  -n MyApi \
+  -e users
+```
 
 ## Generated Output
 

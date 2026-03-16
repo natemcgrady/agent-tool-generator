@@ -17,10 +17,20 @@ interface ToolEntry {
 export function generate(spec: NormalizedSpec, config: GeneratorConfig): void {
   const auth = generateAuth(config);
   const optionsTypeName = `${config.name}Options`;
+  const endpointFilter = config.endpoint?.trim().toLowerCase();
+  const operations = endpointFilter
+    ? spec.operations.filter((op) => op.path.toLowerCase().includes(endpointFilter))
+    : spec.operations;
+
+  if (endpointFilter) {
+    console.log(
+      `Applying endpoint filter "${config.endpoint}": ${operations.length}/${spec.operations.length} operations matched`,
+    );
+  }
 
   // Group operations by first tag
   const groups = new Map<string, NormalizedOperation[]>();
-  for (const op of spec.operations) {
+  for (const op of operations) {
     const tag = op.tags[0] || "default";
     if (!groups.has(tag)) groups.set(tag, []);
     groups.get(tag)!.push(op);
@@ -72,9 +82,13 @@ export function generate(spec: NormalizedSpec, config: GeneratorConfig): void {
   console.log(
     `\nGenerated ${totalTools} tools in ${tagDirs.length} directories in ${config.output}`,
   );
-  console.log(
-    `Import tools directly: import { toolName } from "./${tagDirs[0]?.dirName}/tool-file.js"`,
-  );
+  if (tagDirs.length > 0) {
+    console.log(
+      `Import tools directly: import { toolName } from "./${tagDirs[0].dirName}/tool-file.js"`,
+    );
+  } else {
+    console.log(`No tool files were generated for the selected operations.`);
+  }
 }
 
 function emitSingleToolFile(

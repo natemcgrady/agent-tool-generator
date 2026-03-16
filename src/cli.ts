@@ -9,6 +9,7 @@ const { values } = parseArgs({
     input: { type: "string", short: "i" },
     output: { type: "string", short: "o" },
     name: { type: "string", short: "n" },
+    endpoint: { type: "string", short: "e" },
     "strip-prefix": { type: "string" },
     "emit-jsdoc": { type: "boolean" },
     "auth-type": { type: "string" },
@@ -27,6 +28,7 @@ Options:
   -i, --input <source>      OpenAPI/Swagger spec source: local path or http(s) URL (JSON/YAML)
   -o, --output <dir>        Output directory for generated files
   -n, --name <name>         API name (used for type names, e.g. "SentinelOne")
+  -e, --endpoint <name>     Only generate tools for endpoint paths containing this value (e.g. "users")
   --strip-prefix <prefix>   Path prefix to strip when deriving tool names
   --emit-jsdoc              Emit JSDoc comments with required input/output details
   --auth-type <type>        Auth type: apiKey, bearer, basic (default: apiKey)
@@ -42,6 +44,7 @@ const config: GeneratorConfig = {
   input: values.input,
   output: values.output,
   name: values.name,
+  endpoint: values.endpoint,
   stripPrefix: values["strip-prefix"],
   emitJsdoc: values["emit-jsdoc"],
   authType: values["auth-type"] as GeneratorConfig["authType"],

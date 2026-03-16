@@ -2,6 +2,7 @@ export interface GeneratorConfig {
   input: string;
   output: string;
   name: string;
+  endpoint?: string;
   stripPrefix?: string;
   emitJsdoc?: boolean;
   authType?: "apiKey" | "bearer" | "basic";
