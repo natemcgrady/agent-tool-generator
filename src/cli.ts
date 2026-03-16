@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { parseArgs } from "node:util";
 import { generateTools } from "./index.js";
 import type { GeneratorConfig } from "./config.js";
@@ -18,7 +20,7 @@ const { values } = parseArgs({
 });
 
 if (values.help || !values.input || !values.output || !values.name) {
-  console.log(`Usage: tsx src/generator/cli.ts [options]
+  console.log(`Usage: agent-tool-generator [options]
 
 Options:
   -i, --input <path>        Path to OpenAPI/Swagger spec (JSON)

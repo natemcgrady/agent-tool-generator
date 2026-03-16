@@ -1,23 +1,32 @@
 # agent-tool-generator
 
-A CLI tool that generates type-safe [AI SDK](https://sdk.vercel.ai/) tools from OpenAPI 3.x and Swagger 2.0 specifications. Point it at a spec and get one tool per operation, complete with Zod schemas, auth handling, and barrel exports — ready to plug into any AI SDK agent.
+A CLI tool that generates type-safe [AI SDK](https://sdk.vercel.ai/) tools from OpenAPI 3.x and Swagger 2.0 specifications. Point it at a spec and get one tool per operation, complete with Zod schemas and auth handling — ready to plug into any AI SDK agent.
 
 ## Installation
 
 ```bash
-pnpm install
+pnpm add agent-tool-generator
 ```
 
 ## Quick Start
 
 ```bash
-pnpm generate -- \
+pnpm dlx agent-tool-generator \
   -i ./swagger.json \
   -o ./src/tools/my-api \
   -n MyApi
 ```
 
 This reads `swagger.json`, detects whether it's Swagger 2.0 or OpenAPI 3.x, and writes generated tools to `src/tools/my-api/`.
+
+If the package is installed in your project, you can also run:
+
+```bash
+pnpm exec agent-tool-generator \
+  -i ./swagger.json \
+  -o ./src/tools/my-api \
+  -n MyApi
+```
 
 ## CLI Options
 
@@ -40,29 +49,27 @@ Given a spec, the generator produces:
 ```
 src/tools/my-api/
 ├── _types.ts              # Shared options type (baseUrl, auth)
-├── index.ts               # Root barrel export
 ├── accounts/
 │   ├── get-accounts.ts    # One file per operation
-│   ├── post-accounts.ts
-│   └── index.ts           # Per-tag barrel export
+│   └── post-accounts.ts
 ├── agents/
-│   ├── get-agents.ts
-│   └── index.ts
+│   └── get-agents.ts
 └── ...
 ```
 
 - **One file per operation** — each exports a tool factory function
 - **Grouped by tag** — operations are organized into subdirectories by their first OpenAPI tag
-- **Barrel exports** — every directory has an `index.ts` so you can import from the root
+- **Direct file imports** — barrel `index.ts` files are not generated
 
 ## Usage in Code
 
 ```ts
-import { getAccounts, postAccounts } from "./tools/my-api";
+import { getAccounts } from "./tools/my-api/accounts/get-accounts.js";
+import { postAccounts } from "./tools/my-api/accounts/post-accounts.js";
 
 const tools = {
-  getAccounts: getAccounts({ baseUrl: "https://api.example.com", apiKey: API_KEY }),
-  postAccounts: postAccounts({ baseUrl: "https://api.example.com", apiKey: API_KEY }),
+  getAccounts: getAccounts({ baseUrl: "https://api.example.com", apiToken: API_TOKEN }),
+  postAccounts: postAccounts({ baseUrl: "https://api.example.com", apiToken: API_TOKEN }),
 };
 ```
 
@@ -88,9 +95,9 @@ Specs must be JSON. Convert YAML specs to JSON before running the generator.
 
 | Script | Description |
 | --- | --- |
-| `pnpm generate` | Run the generator CLI |
+| `pnpm generate` | Run the local TypeScript CLI (repo development) |
 | `pnpm build` | Build the package with tsup |
-| `pnpm test` | Run the test file |
+| `pnpm test` | Run the package's configured test command |
 
 ## License
 
