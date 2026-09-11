@@ -4,7 +4,8 @@ import type { NormalizedSpec, NormalizedOperation } from "../normalize/types.js"
 import type { GeneratorConfig } from "../config.js";
 import { generateAuth, type AuthInfo } from "./auth.js";
 import { emitTool } from "./tool-emitter.js";
-import { deriveToolName, deduplicateName, camelToKebab, tagToFilename } from "../util/naming.js";
+import { emitEveTool } from "./eve-tool-emitter.js";
+import { deriveToolName, deduplicateName, camelToKebab, camelToSnake, tagToFilename } from "../util/naming.js";
 
 interface ToolEntry {
   toolName: string;
@@ -28,6 +29,8 @@ export function generate(spec: NormalizedSpec, config: GeneratorConfig): void {
     );
   }
 
+  const isEve = config.format === "eve";
+
   // Group operations by first tag
   const groups = new Map<string, NormalizedOperation[]>();
   for (const op of operations) {
@@ -39,15 +42,17 @@ export function generate(spec: NormalizedSpec, config: GeneratorConfig): void {
   // Ensure output directory exists
   fs.mkdirSync(config.output, { recursive: true });
 
-  // Emit shared types file at root
-  const typesContent = [
-    `export type ${optionsTypeName} = {`,
-    `  baseUrl: string;`,
-    ...(auth.optionsFields ? [auth.optionsFields] : []),
-    `};`,
-    "",
-  ].join("\n");
-  fs.writeFileSync(path.join(config.output, "_types.ts"), typesContent, "utf-8");
+  // Emit shared types file at root (not needed for eve format)
+  if (!isEve) {
+    const typesContent = [
+      `export type ${optionsTypeName} = {`,
+      `  baseUrl: string;`,
+      ...(auth.optionsFields ? [auth.optionsFields] : []),
+      `};`,
+      "",
+    ].join("\n");
+    fs.writeFileSync(path.join(config.output, "_types.ts"), typesContent, "utf-8");
+  }
 
   let totalTools = 0;
   const tagDirs: { tag: string; dirName: string; tools: ToolEntry[] }[] = [];
@@ -67,8 +72,8 @@ export function generate(spec: NormalizedSpec, config: GeneratorConfig): void {
         seenNames,
       );
 
-      const filename = camelToKebab(toolName) + ".ts";
-      const content = emitSingleToolFile(op, config, auth, toolName, optionsTypeName);
+      const filename = (isEve ? camelToSnake(toolName) : camelToKebab(toolName)) + ".ts";
+      const content = emitSingleToolFile(op, config, auth, toolName, optionsTypeName, isEve);
       fs.writeFileSync(path.join(tagDir, filename), content, "utf-8");
 
       tools.push({ toolName, filename });
@@ -83,9 +88,15 @@ export function generate(spec: NormalizedSpec, config: GeneratorConfig): void {
     `\nGenerated ${totalTools} tools in ${tagDirs.length} directories in ${config.output}`,
   );
   if (tagDirs.length > 0) {
-    console.log(
-      `Import tools directly: import { toolName } from "./${tagDirs[0].dirName}/tool-file.js"`,
-    );
+    if (isEve) {
+      console.log(
+        `Place these tool files in your eve agent's agent/tools/ directory to use them.`,
+      );
+    } else {
+      console.log(
+        `Import tools directly: import { toolName } from "./${tagDirs[0].dirName}/tool-file.js"`,
+      );
+    }
   } else {
     console.log(`No tool files were generated for the selected operations.`);
   }
@@ -97,18 +108,42 @@ function emitSingleToolFile(
   auth: AuthInfo,
   toolName: string,
   optionsTypeName: string,
+  isEve: boolean,
 ): string {
   const lines: string[] = [];
 
-  lines.push(`import { tool } from "ai";`);
-  lines.push(`import { z } from "zod";`);
-  lines.push(`import type { ${optionsTypeName} } from "../_types.js";`);
-  lines.push("");
+  if (isEve) {
+    lines.push(`import { defineTool } from "eve/tools";`);
+    lines.push(`import { z } from "zod";`);
+    lines.push(``);
+    lines.push(`// Configure your API options`);
+    lines.push(`const options = {`);
+    lines.push(`  baseUrl: process.env.API_BASE_URL || "",`);
+    if (auth.optionsFields) {
+      // Extract auth field from optionsFields
+      const authMatch = auth.optionsFields.match(/(\w+):/);
+      if (authMatch) {
+        const authField = authMatch[1];
+        lines.push(`  ${authField}: process.env.API_TOKEN || "",`);
+      }
+    }
+    lines.push(`};`);
+    lines.push(``);
 
-  const freshSeen = new Set<string>();
-  const code = emitTool(op, config, auth, optionsTypeName, freshSeen);
-  lines.push(code);
-  lines.push("");
+    const freshSeen = new Set<string>();
+    const code = emitEveTool(op, config, auth, optionsTypeName, freshSeen);
+    lines.push(code);
+  } else {
+    lines.push(`import { tool } from "ai";`);
+    lines.push(`import { z } from "zod";`);
+    lines.push(`import type { ${optionsTypeName} } from "../_types.js";`);
+    lines.push("");
 
+    const freshSeen = new Set<string>();
+    const code = emitTool(op, config, auth, optionsTypeName, freshSeen);
+    lines.push(code);
+  }
+
+  lines.push("");
   return lines.join("\n");
 }

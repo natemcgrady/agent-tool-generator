@@ -5,6 +5,7 @@ export interface GeneratorConfig {
   endpoint?: string;
   stripPrefix?: string;
   emitJsdoc?: boolean;
+  format?: "ai-sdk" | "eve";
   authType?: "apiKey" | "bearer" | "basic";
   authHeader?: string;
   authPrefix?: string;
@@ -13,6 +14,7 @@ export interface GeneratorConfig {
 
 export const defaultConfig: Partial<GeneratorConfig> = {
   emitJsdoc: false,
+  format: "ai-sdk",
   authType: "apiKey",
   authHeader: "Authorization",
   authPrefix: "Bearer ",

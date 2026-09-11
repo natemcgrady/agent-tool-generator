@@ -12,6 +12,7 @@ const { values } = parseArgs({
     endpoint: { type: "string", short: "e" },
     "strip-prefix": { type: "string" },
     "emit-jsdoc": { type: "boolean" },
+    format: { type: "string", short: "f" },
     "auth-type": { type: "string" },
     "auth-header": { type: "string" },
     "auth-prefix": { type: "string" },
@@ -31,6 +32,7 @@ Options:
   -e, --endpoint <name>     Only generate tools for endpoint paths containing this value (e.g. "users")
   --strip-prefix <prefix>   Path prefix to strip when deriving tool names
   --emit-jsdoc              Emit JSDoc comments with required input/output details
+  -f, --format <format>     Output format: ai-sdk, eve (default: ai-sdk)
   --auth-type <type>        Auth type: apiKey, bearer, basic (default: apiKey)
   --auth-header <name>      Auth header name (default: Authorization)
   --auth-prefix <prefix>    Auth value prefix (default: "Bearer ")
@@ -47,6 +49,7 @@ const config: GeneratorConfig = {
   endpoint: values.endpoint,
   stripPrefix: values["strip-prefix"],
   emitJsdoc: values["emit-jsdoc"],
+  format: values.format as GeneratorConfig["format"],
   authType: values["auth-type"] as GeneratorConfig["authType"],
   authHeader: values["auth-header"],
   authPrefix: values["auth-prefix"],
