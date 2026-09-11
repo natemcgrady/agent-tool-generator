@@ -38,6 +38,7 @@ pnpm exec agent-tool-generator \
 | `--endpoint <name>` | `-e` | Only generate tools for endpoint paths containing this value (e.g. `users`) | |
 | `--strip-prefix <prefix>` | | Path prefix to strip when deriving tool names | |
 | `--emit-jsdoc` | | Emit JSDoc comments in generated tool files with required input/output details | `false` |
+| `--format <format>` | `-f` | Output format: `ai-sdk`, `eve` | `ai-sdk` |
 | `--auth-type <type>` | | Auth type: `apiKey`, `bearer`, `basic` | `apiKey` |
 | `--auth-header <name>` | | Auth header name | `Authorization` |
 | `--auth-prefix <prefix>` | | Auth value prefix | `Bearer ` |
@@ -54,7 +55,19 @@ pnpm dlx agent-tool-generator \
   -e users
 ```
 
+Generate tools for [eve](https://eve.dev) agents:
+
+```bash
+pnpm dlx agent-tool-generator \
+  -i ./swagger.json \
+  -o ./agent/tools/my-api \
+  -n MyApi \
+  -f eve
+```
+
 ## Generated Output
+
+### AI SDK Format (Default)
 
 Given a spec, the generator produces:
 
@@ -62,7 +75,7 @@ Given a spec, the generator produces:
 src/tools/my-api/
 ├── _types.ts              # Shared options type (baseUrl, auth)
 ├── accounts/
-│   ├── get-accounts.ts    # One file per operation
+│   ├── get-accounts.ts    # One file per operation (kebab-case)
 │   └── post-accounts.ts
 ├── agents/
 │   └── get-agents.ts
@@ -72,8 +85,30 @@ src/tools/my-api/
 - **One file per operation** — each exports a tool factory function
 - **Grouped by tag** — operations are organized into subdirectories by their first OpenAPI tag
 - **Direct file imports** — barrel `index.ts` files are not generated
+- **Kebab-case filenames** — `get-accounts.ts`, `post-accounts.ts`
+
+### Eve Format
+
+When using `--format eve`, the generator produces tools compatible with [eve](https://eve.dev):
+
+```
+agent/tools/my-api/
+├── accounts/
+│   ├── get_accounts.ts    # One file per operation (snake_case)
+│   └── post_accounts.ts
+├── agents/
+│   └── get_agents.ts
+└── ...
+```
+
+- **Snake_case filenames** — `get_accounts.ts`, `post_accounts.ts` (eve requirement)
+- **Default export with `defineTool`** — uses `defineTool` from `eve/tools`
+- **Standalone tools** — each tool includes its own configuration with `process.env` access
+- **No shared types file** — tools are self-contained for eve's discovery system
 
 ## Usage in Code
+
+### AI SDK Format
 
 ```ts
 import { getAccounts } from "./tools/my-api/accounts/get-accounts.js";
@@ -91,6 +126,35 @@ Each generated tool is compatible with the AI SDK `tool()` interface and include
 - A description pulled from the operation's summary/description
 - An `execute` function that makes the HTTP request with proper auth
 - Optional JSDoc blocks (`--emit-jsdoc`) that document required input and output contracts
+
+### Eve Format
+
+For eve agents, generated tools are placed in your `agent/tools/` directory and automatically discovered:
+
+```
+my-eve-agent/
+├── agent/
+│   ├── agent.ts
+│   ├── instructions.md
+│   └── tools/
+│       └── my-api/
+│           ├── accounts/
+│           │   ├── get_accounts.ts
+│           │   └── post_accounts.ts
+│           └── agents/
+│               └── get_agents.ts
+└── package.json
+```
+
+Each tool uses `defineTool` from `eve/tools` and includes:
+
+- Configuration via `process.env` for base URL and auth tokens
+- A Zod input schema for type-safe parameters
+- An `async execute(input, ctx)` function with access to eve's context
+- Optional `outputSchema` for structured responses
+- Full compatibility with eve's tool discovery and execution system
+
+No imports needed — eve discovers and exposes tools automatically based on filename!
 
 ## Supported Specs
 

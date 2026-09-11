@@ -72,6 +72,17 @@ export function camelToKebab(s: string): string {
 }
 
 /**
+ * Convert a camelCase string to snake_case.
+ * e.g. getAgents → get_agents
+ */
+export function camelToSnake(s: string): string {
+  return s
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/([A-Z])([A-Z][a-z])/g, "$1_$2")
+    .toLowerCase();
+}
+
+/**
  * Return a unique name by appending a numeric suffix if `name` already exists in `seen`.
  * Adds the final name to `seen` before returning.
  */
